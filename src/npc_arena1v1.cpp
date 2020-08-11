@@ -65,16 +65,16 @@ public:
             return true;
         }
 
-        if (player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5))
+        if (player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_1v1))
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Queue leave 1v1 Arena", GOSSIP_SENDER_MAIN, 3, "Are you sure?", 0, false);
         else
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Queue enter 1v1 Arena(UnRated)", GOSSIP_SENDER_MAIN, 20);
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Queue enter 1v1 Arena (UnRated)", GOSSIP_SENDER_MAIN, 20);
 
-        if (!player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_5v5)))
+        if (!player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_1v1)))
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Create new 1v1 Arena Team", GOSSIP_SENDER_MAIN, 1, "Are you sure?", sConfigMgr->GetIntDefault("Arena1v1Costs", 400000), false);
         else
         {
-            if (!player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5))
+            if (!player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_1v1))
             {
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Queue enter 1v1 Arena (Rated)", GOSSIP_SENDER_MAIN, 2);
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Arenateam Clear", GOSSIP_SENDER_MAIN, 5, "Are you sure?", 0, false);
@@ -136,9 +136,9 @@ public:
 
         case 3: // Leave Queue
         {
-            uint8 arenaType = ARENA_TYPE_5v5;
+            uint8 arenaType = ARENA_TYPE_1v1;
 
-            if (!player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5))
+            if (!player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_1v1))
                 return true;
 
             WorldPacket data;
@@ -151,7 +151,7 @@ public:
 
         case 4: // get statistics
         {
-            ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_5v5)));
+            ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_1v1)));
             if (at)
             {
                 std::stringstream s;
@@ -170,7 +170,7 @@ public:
         case 5: // Disband arenateam
         {
             WorldPacket Data;
-            Data << (uint32)player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_5v5));
+            Data << (uint32)player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_1v1));
             player->GetSession()->HandleArenaTeamLeaveOpcode(Data);
             handler.SendSysMessage("Arenateam deleted!");
             CloseGossipMenuFor(player);
@@ -191,9 +191,8 @@ private:
 
         if (sConfigMgr->GetIntDefault("Arena1v1MinLevel", 80) > player->getLevel())
             return false;
-
-        uint8 arenaslot = ArenaTeam::GetSlotByType(ARENA_TEAM_5v5);
-        uint8 arenatype = ARENA_TYPE_5v5;
+        uint8 arenaslot = ArenaTeam::GetSlotByType(ARENA_TEAM_1v1);
+        uint8 arenatype = ARENA_TYPE_1v1;
         uint32 arenaRating = 0;
         uint32 matchmakerRating = 0;
 
@@ -205,11 +204,11 @@ private:
         Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(BATTLEGROUND_AA);
         if (!bg)
         {
-            sLog->outString("Battleground: template bg (all arenas) not found");
+            sLog->outDebug(LOG_FILTER_NETWORKIO, "Battleground: template bg (all arenas) not found");
             return false;
         }
 
-        if (DisableMgr::IsDisabledFor(DISABLE_TYPE_BATTLEGROUND, BATTLEGROUND_AA, nullptr))
+        if (DisableMgr::IsDisabledFor(DISABLE_TYPE_BATTLEGROUND, BATTLEGROUND_AA, NULL))
         {
             ChatHandler(player->GetSession()).PSendSysMessage(LANG_ARENA_DISABLED);
             return false;
@@ -223,7 +222,7 @@ private:
 
         // check if already in queue
         if (player->GetBattlegroundQueueIndex(bgQueueTypeId) < PLAYER_MAX_BATTLEGROUND_QUEUES)
-            return false; // //player is already in this queue
+            return false; //player is already in this queue
 
         // check if has free queue slots
         if (!player->HasFreeBattlegroundQueueId())
@@ -253,13 +252,13 @@ private:
         BattlegroundQueue& bgQueue = sBattlegroundMgr->GetBattlegroundQueue(bgQueueTypeId);
         bg->SetRated(isRated);
 
-        GroupQueueInfo* ginfo = bgQueue.AddGroup(player, nullptr, bracketEntry, isRated, false, arenaRating, matchmakerRating, ateamId);
+        GroupQueueInfo* ginfo = bgQueue.AddGroup(player, NULL, bracketEntry, isRated, false, arenaRating, matchmakerRating, ateamId);
         uint32 avgTime = bgQueue.GetAverageQueueWaitTime(ginfo);
         uint32 queueSlot = player->AddBattlegroundQueueId(bgQueueTypeId);
 
         // send status packet (in queue)
         WorldPacket data;
-        sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, queueSlot, STATUS_WAIT_QUEUE, avgTime, 0, arenatype, TEAM_NEUTRAL, isRated);
+        sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, queueSlot, STATUS_WAIT_QUEUE, avgTime, 0, arenatype, TEAM_NEUTRAL);
         player->GetSession()->SendPacket(&data);
 
         sBattlegroundMgr->ScheduleArenaQueueUpdate(matchmakerRating, bgQueueTypeId, bracketEntry->GetBracketId());
@@ -272,7 +271,7 @@ private:
         if (!player || !me)
             return false;
 
-        uint8 slot = ArenaTeam::GetSlotByType(ARENA_TEAM_5v5);
+        uint8 slot = ArenaTeam::GetSlotByType(ARENA_TEAM_1v1);
         if (slot >= MAX_ARENA_SLOT)
             return false;
 
@@ -284,25 +283,18 @@ private:
         }
 
         // Teamname = playername
-        // if teamname exist, we have to choose another name (playername + number)
-        int i = 1;
         std::stringstream teamName;
         teamName << player->GetName();
 
-        do
+        if (sArenaTeamMgr->GetArenaTeamByName(teamName.str()) != NULL) // teamname exist, so choose another name
         {
-            if (sArenaTeamMgr->GetArenaTeamByName(teamName.str()) != NULL) // teamname exist, so choose another name
-            {
-                teamName.str(std::string());
-                teamName << player->GetName() << (i++);
-            }
-            else
-                break;
-        } while (i < 100); // should never happen
+            player->GetSession()->SendArenaTeamCommandResult(ERR_ARENA_TEAM_CREATE_S, player->GetName(), "You are already in an arena team! -  But it was not in you arena teams.", ERR_ALREADY_IN_ARENA_TEAM);
+            return false;
+        }
 
         // Create arena team
         ArenaTeam* arenaTeam = new ArenaTeam();
-        if (!arenaTeam->Create(player->GetGUID(), ARENA_TEAM_5v5, teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
+        if (!arenaTeam->Create(player->GetGUID(), ARENA_TEAM_1v1, teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
         {
             delete arenaTeam;
             return false;
